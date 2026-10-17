@@ -1,0 +1,131 @@
+name: Build and Release Android APK
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Typecheck & Tests
+        run: |
+          npx tsc --noEmit
+          npm test
+
+      - name: Expo Prebuild Android
+        run: npx expo prebuild --platform android --clean
+
+      - name: Make Gradlew Executable
+        run: chmod +x android/gradlew
+
+      - name: Build Android Release APK
+        run: |
+          cd android
+          ./gradlew assembleRelease --no-daemon
+
+      - name: Prepare APK Asset
+        run: |
+          mkdir -p release-assets
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          VERSION_TAG="${{ github.ref_type == 'tag' && github.ref_name || '' }}"
+          if [ -z "$VERSION_TAG" ]; then
+            VERSION_TAG="v${PKG_VERSION}"
+          fi
+          echo "RESOLVED_TAG=${VERSION_TAG}" >> $GITHUB_ENV
+          cp android/app/build/outputs/apk/release/app-release.apk "release-assets/Naggy-${VERSION_TAG}.apk"
+          cp android/app/build/outputs/apk/release/app-release.apk release-assets/Naggy.apk
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Naggy.apk
+          path: release-assets/Naggy.apk
+
+      - name: Create or Update GitHub Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/') || github.ref == 'refs/heads/master'
+        with:
+          tag_name: ${{ env.RESOLVED_TAG }}
+          name: "Naggy ${{ env.RESOLVED_TAG }} — Soft Neumorphic UI, Full-Screen Alarms & Persistent Accountability"
+          body: |
+            ### Naggy — “We nag. You get things done.” 🚀
+
+            Welcome to the official **v1.0 release** of Naggy: the persistent, accountable, local-first task manager built for people who actually want to follow through.
+
+            Dismissal is not completion. While conventional reminder apps disappear after a single swipe, Naggy keeps nudging you with persistent intervals, waking alarms, voice reminders, and home screen widgets until you actually finish the task.
+
+            ---
+
+            ### ✨ What's New in v1.0:
+
+            - 🎨 **Complete Soft Neumorphic / Claymorphic UI Overhaul**:
+              - Tactile claymorphic elevated cards with dual-shadow illumination and recessed wells.
+              - Pill-shaped controls, squircle checkmarks, and custom-styled priority badges.
+              - Seamless automatic Light and Dark theme modes matching system settings.
+              - Polished micro-interactions and smooth transitions across all screens.
+
+            - ⏰ **Full-Screen Waking Alarms & Audio Nagging**:
+              - Waking full-screen alarm modal for high-urgency and overdue reminders.
+              - 4 synthesized alarm tone presets: Urgent Radar, Digital Alarm, Gentle Chime, Service Bell.
+              - Spoken voice nagging (TTS) reads overdue task titles aloud until handled.
+              - Quick-action buttons: Complete, Snooze (+10m, +1h, tomorrow), or Dismiss.
+
+            - 📱 **Android Home Screen Widget & Sticky Lock Screen Nag**:
+              - Live Android AppWidget sync displaying your next overdue task at a glance.
+              - Sticky, non-dismissible ongoing notification keeping your top priority directly on your lock screen.
+
+            - ⚡ **Natural-Language Quick Add & Fluid Gestures**:
+              - Type natural expressions like `"Submit taxes tomorrow at 2pm"` or `"Take vitamins every 15m"`.
+              - Swipe right to mark completed with tactile haptic feedback.
+              - Swipe left to reveal quick +15m snooze and delete shortcuts.
+
+            - 📊 **Accountability Analytics & Streaks**:
+              - Time-of-day briefings (Morning Kickoff, Afternoon Momentum, Evening Wrap-up).
+              - Completion velocity charts, habit streaks, and bottleneck detection for postponed tasks.
+
+            - 🔒 **100% Local-First SQLite & Offline Privacy**:
+              - All data lives exclusively on your device in local SQLite.
+              - Zero tracking, zero accounts, no internet required for core functionality.
+              - JSON backup export and restore directly from Settings.
+              - Built-in GitHub update checker for seamless in-app upgrades.
+
+            ---
+
+            ### 📲 Download & Installation:
+            Download **`Naggy.apk`** below, open it on your Android device, and follow through on what matters most!
+          draft: false
+          prerelease: false
+          files: |
+            release-assets/*.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
