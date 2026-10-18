@@ -71,6 +71,8 @@ export type MissedOccurrencePolicy = 'keep_overdue' | 'skip' | 'reschedule_today
 
 export type AlarmTone = 'radar' | 'classic' | 'chime' | 'bell' | 'none';
 
+export type NuclearChallengeType = 'math' | 'tap';
+
 export interface AppSettings {
   theme: 'system' | 'light' | 'dark';
   remindersEnabled: boolean;
@@ -90,6 +92,8 @@ export interface AppSettings {
   alarmVolume: number;
   stickyNotificationEnabled: boolean;
   hasCompletedOnboarding: boolean;
+  nuclearModeEnabled: boolean;
+  nuclearModeType: NuclearChallengeType;
 }
 
 

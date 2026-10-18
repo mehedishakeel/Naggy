@@ -13,15 +13,17 @@ import { useTheme } from '../../context/ThemeContext';
 import { useTasks } from '../../context/TaskContext';
 import { TaskItem } from '../../components/TaskItem';
 import { EmptyState } from '../../components/EmptyState';
+import { TagFilterBar, filterTasksByTag } from '../../components/TagFilterBar';
 import { formatISODate, formatDisplayDate } from '../../utils/date';
 
 export default function AgendaScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { colors, typography, spacing, radii, cardStyle } = useTheme();
-  const { tasks, completeTask, reopenTask, deleteTask, snoozeTask } = useTasks();
+  const { tasks, lists, completeTask, reopenTask, deleteTask, snoozeTask } = useTasks();
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // Generate 14 days strip starting from today
   const daysStrip = React.useMemo(
@@ -33,6 +35,7 @@ export default function AgendaScreen() {
   const tasksForSelectedDate = tasks.filter(
     (t) => !t.isArchived && t.dueDate === selectedDateStr
   );
+  const filteredTasks = filterTasksByTag(tasksForSelectedDate, selectedTag, lists);
 
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
@@ -118,6 +121,14 @@ export default function AgendaScreen() {
         </ScrollView>
       </View>
 
+      {/* Smart Tag Filter Chips */}
+      <TagFilterBar
+        tasks={tasksForSelectedDate}
+        lists={lists}
+        selectedTag={selectedTag}
+        onSelectTag={setSelectedTag}
+      />
+
       {/* Agenda Task List */}
       <ScrollView
         contentContainerStyle={[styles.content, { paddingHorizontal: spacing.lg, paddingBottom: 84 + insets.bottom }]}
@@ -129,13 +140,13 @@ export default function AgendaScreen() {
           </Text>
           <View style={[styles.countBadge, { backgroundColor: colors.surfaceSecondary, borderRadius: radii.pill }]}>
             <Text style={[typography.micro, { color: colors.textSecondary, fontWeight: '600' }]}>
-              {tasksForSelectedDate.length} {tasksForSelectedDate.length === 1 ? 'task' : 'tasks'}
+              {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
             </Text>
           </View>
         </View>
 
-        {tasksForSelectedDate.length > 0 ? (
-          tasksForSelectedDate.map((task) => (
+        {filteredTasks.length > 0 ? (
+          filteredTasks.map((task) => (
             <TaskItem
               key={task.id}
               task={task}
@@ -149,9 +160,13 @@ export default function AgendaScreen() {
           ))
         ) : (
           <EmptyState
-            icon="calendar-outline"
-            title="Nothing scheduled"
-            description="No tasks due on this day."
+            icon={selectedTag ? 'funnel-outline' : 'calendar-outline'}
+            title={selectedTag ? `No tasks matching ${selectedTag}` : 'Nothing scheduled'}
+            description={
+              selectedTag
+                ? 'Try tapping "All" or choosing another tag filter chip.'
+                : 'No tasks due on this day.'
+            }
           />
         )}
       </ScrollView>

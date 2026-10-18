@@ -27,6 +27,8 @@ const defaultSettings: AppSettings = {
   alarmVolume: 1.0,
   stickyNotificationEnabled: true,
   hasCompletedOnboarding: false,
+  nuclearModeEnabled: false,
+  nuclearModeType: 'math',
 };
 
 const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);

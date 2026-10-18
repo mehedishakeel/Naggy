@@ -20,7 +20,8 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useTasks } from '../../context/TaskContext';
 import { exportBackupJSON, exportTasksCSV } from '../../utils/backup';
 import { clearCompletedTasks, resetDatabase } from '../../database';
-import { MissedOccurrencePolicy, AlarmTone } from '../../types';
+import { MissedOccurrencePolicy, AlarmTone, NuclearChallengeType } from '../../types';
+import { NuclearChallengeModal } from '../../components/NuclearChallengeModal';
 
 import { getCurrentAppVersion, promptForUpdates } from '../../services/updates';
 import {
@@ -39,6 +40,7 @@ export default function SettingsScreen() {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [playingTone, setPlayingTone] = useState<AlarmTone | null>(null);
   const [isSpeakingVoice, setIsSpeakingVoice] = useState(false);
+  const [isPreviewingChallenge, setIsPreviewingChallenge] = useState(false);
   const currentVersion = getCurrentAppVersion();
 
 
@@ -550,6 +552,136 @@ export default function SettingsScreen() {
           </View>
         </View>
 
+        {/* NUCLEAR PROOF OF ACTION */}
+        <View style={styles.section}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 }}>
+            <Ionicons name="flame" size={16} color={colors.urgent} />
+            <Text style={[typography.caption, { color: colors.urgent, fontWeight: '800', letterSpacing: 0.5 }]}>
+              NUCLEAR PROOF OF ACTION
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.card,
+              cardStyle,
+              { borderRadius: radii.xl },
+            ]}
+          >
+            {/* Master Toggle */}
+            <View style={[styles.settingRow, { borderBottomColor: colors.borderSubtle, borderBottomWidth: 1 }]}>
+              <View style={styles.rowLabelContainer}>
+                <Text style={[typography.bodyMedium, { color: colors.text }]}>Proof-of-Action Challenge</Text>
+                <Text style={[typography.caption, { color: colors.textSecondary }]}>
+                  Require solving a wake-up challenge before silencing or dismissing alarms
+                </Text>
+              </View>
+              <Switch
+                value={settings.nuclearModeEnabled}
+                onValueChange={(val) => updateSettings({ nuclearModeEnabled: val })}
+                trackColor={{ false: colors.border, true: colors.urgent }}
+              />
+            </View>
+
+            {/* Challenge Type Selector */}
+            {settings.nuclearModeEnabled && (
+              <>
+                <View
+                  style={[
+                    styles.settingColumn,
+                    { borderBottomColor: colors.borderSubtle, borderBottomWidth: 1, padding: 14 },
+                  ]}
+                >
+                  <Text style={[typography.bodyMedium, { color: colors.text }]}>Challenge Type</Text>
+                  <Text style={[typography.caption, { color: colors.textSecondary, marginBottom: 8 }]}>
+                    Choose the type of cognitive challenge to solve
+                  </Text>
+                  <View style={styles.optionsRow}>
+                    {[
+                      { label: 'Math Equation', value: 'math' as NuclearChallengeType, icon: 'calculator' as const },
+                      { label: 'Fast Tap (1-5)', value: 'tap' as NuclearChallengeType, icon: 'finger-print' as const },
+                    ].map((opt) => {
+                      const isSelected = settings.nuclearModeType === opt.value;
+                      return (
+                        <TouchableOpacity
+                          key={opt.value}
+                          onPress={() => updateSettings({ nuclearModeType: opt.value })}
+                          style={[
+                            styles.optionChip,
+                            {
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 6,
+                              backgroundColor: isSelected ? colors.urgent : colors.surfaceSecondary,
+                              borderRadius: radii.pill,
+                              borderWidth: 1,
+                              borderColor: isSelected ? colors.urgent : colors.border,
+                            },
+                          ]}
+                        >
+                          <Ionicons
+                            name={opt.icon}
+                            size={14}
+                            color={isSelected ? '#FFFFFF' : colors.text}
+                          />
+                          <Text
+                            style={[
+                              typography.micro,
+                              {
+                                color: isSelected ? '#FFFFFF' : colors.text,
+                                fontWeight: '700',
+                              },
+                            ]}
+                          >
+                            {opt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Test Challenge Button */}
+                <View
+                  style={[
+                    styles.settingRow,
+                    {
+                      backgroundColor: colors.surfaceSecondary,
+                      borderBottomWidth: 0,
+                    },
+                  ]}
+                >
+                  <View style={styles.rowLabelContainer}>
+                    <Text style={[typography.bodySmall, { color: colors.text, fontWeight: '600' }]}>
+                      Test Challenge Now
+                    </Text>
+                    <Text style={[typography.micro, { color: colors.textSecondary }]}>
+                      Try solving the challenge modal
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => setIsPreviewingChallenge(true)}
+                    activeOpacity={0.7}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: colors.urgent,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: radii.pill,
+                      gap: 6,
+                    }}
+                  >
+                    <Ionicons name="play" size={12} color="#FFFFFF" />
+                    <Text style={[typography.micro, { color: '#FFFFFF', fontWeight: '700' }]}>
+                      Try Challenge
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+
         {/* ANDROID WIDGET & STICKY LOCK SCREEN */}
         <View style={styles.section}>
           <Text style={[typography.caption, styles.sectionTitle, { color: colors.textSecondary }]}>
@@ -856,6 +988,18 @@ export default function SettingsScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Preview Challenge Modal */}
+      <NuclearChallengeModal
+        visible={isPreviewingChallenge}
+        type={settings.nuclearModeType}
+        actionTitle="Preview Challenge"
+        onSuccess={() => {
+          setIsPreviewingChallenge(false);
+          Alert.alert('Challenge Solved! 🎉', 'You successfully solved the proof-of-action challenge.');
+        }}
+        onCancel={() => setIsPreviewingChallenge(false)}
+      />
     </SafeAreaView>
   );
 }

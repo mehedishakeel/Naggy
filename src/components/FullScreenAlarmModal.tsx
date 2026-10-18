@@ -14,6 +14,7 @@ import { useTheme } from '../context/ThemeContext';
 import { Task, Subtask } from '../types';
 import { formatDisplayTime, getDueStatusText } from '../utils/date';
 import { PriorityBadge } from './PriorityBadge';
+import { NuclearChallengeModal } from './NuclearChallengeModal';
 import { getSettings } from '../database';
 import { startAlarmSoundAndSpeech, stopAlarmSoundAndSpeech } from '../services/alarmSound';
 
@@ -41,6 +42,8 @@ export const FullScreenAlarmModal: React.FC<FullScreenAlarmModalProps> = ({
   const { colors, typography, radii, spacing, cardStyle } = useTheme();
   const [pulseAnim] = useState(() => new Animated.Value(1));
   const [rotateAnim] = useState(() => new Animated.Value(0));
+  const [isChallengeVisible, setIsChallengeVisible] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'complete' | 'dismiss' | null>(null);
 
   // Pulse & vibrate like an alarm when visible
   useEffect(() => {
@@ -263,9 +266,15 @@ export const FullScreenAlarmModal: React.FC<FullScreenAlarmModalProps> = ({
             {/* 1. Primary Giant Complete Button */}
             <TouchableOpacity
               onPress={async () => {
-                await stopAlarmSoundAndSpeech();
-                await onComplete(task.id);
-                onDismiss();
+                const s = getSettings();
+                if (s.nuclearModeEnabled) {
+                  setPendingAction('complete');
+                  setIsChallengeVisible(true);
+                } else {
+                  await stopAlarmSoundAndSpeech();
+                  await onComplete(task.id);
+                  onDismiss();
+                }
               }}
               activeOpacity={0.85}
               style={[
@@ -341,8 +350,14 @@ export const FullScreenAlarmModal: React.FC<FullScreenAlarmModalProps> = ({
 
               <TouchableOpacity
                 onPress={async () => {
-                  await stopAlarmSoundAndSpeech();
-                  onDismiss();
+                  const s = getSettings();
+                  if (s.nuclearModeEnabled) {
+                    setPendingAction('dismiss');
+                    setIsChallengeVisible(true);
+                  } else {
+                    await stopAlarmSoundAndSpeech();
+                    onDismiss();
+                  }
                 }}
                 style={styles.linkBtn}
               >
@@ -353,6 +368,26 @@ export const FullScreenAlarmModal: React.FC<FullScreenAlarmModalProps> = ({
             </View>
           </View>
         </ScrollView>
+
+        {/* Proof-of-action Nuclear Challenge Modal */}
+        <NuclearChallengeModal
+          visible={isChallengeVisible}
+          type={getSettings().nuclearModeType}
+          actionTitle={pendingAction === 'complete' ? 'Complete Task' : 'Dismiss Alarm'}
+          onSuccess={async () => {
+            setIsChallengeVisible(false);
+            await stopAlarmSoundAndSpeech();
+            if (pendingAction === 'complete') {
+              await onComplete(task.id);
+            }
+            setPendingAction(null);
+            onDismiss();
+          }}
+          onCancel={() => {
+            setIsChallengeVisible(false);
+            setPendingAction(null);
+          }}
+        />
       </View>
     </Modal>
   );

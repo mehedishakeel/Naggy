@@ -36,6 +36,18 @@ jest.mock('expo-sharing', () => ({
 jest.mock('react-native', () => ({
   Platform: { OS: 'ios', select: (obj: any) => obj.ios },
   AppState: { addEventListener: jest.fn().mockReturnValue({ remove: jest.fn() }) },
+  StyleSheet: { create: (styles: any) => styles },
+  Dimensions: { get: () => ({ width: 375, height: 812 }) },
+  Animated: {
+    Value: jest.fn(() => ({
+      setValue: jest.fn(),
+      interpolate: jest.fn(),
+    })),
+    timing: jest.fn(() => ({ start: jest.fn((cb?: any) => cb && cb()) })),
+    sequence: jest.fn(() => ({ start: jest.fn((cb?: any) => cb && cb()) })),
+    parallel: jest.fn(() => ({ start: jest.fn((cb?: any) => cb && cb()) })),
+    loop: jest.fn(() => ({ start: jest.fn(), stop: jest.fn() })),
+  },
 }));
 
 jest.mock('expo-sqlite', () => ({

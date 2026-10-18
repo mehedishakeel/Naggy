@@ -448,6 +448,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   alarmVolume: 1.0,
   stickyNotificationEnabled: true,
   hasCompletedOnboarding: false,
+  nuclearModeEnabled: false,
+  nuclearModeType: 'math',
 };
 
 export const getSettings = (): AppSettings => {
@@ -495,6 +497,10 @@ export const getSettings = (): AppSettings => {
     hasCompletedOnboarding: map.has('has_completed_onboarding')
       ? map.get('has_completed_onboarding') === 'true'
       : DEFAULT_SETTINGS.hasCompletedOnboarding,
+    nuclearModeEnabled: map.has('nuclear_mode_enabled')
+      ? map.get('nuclear_mode_enabled') === 'true'
+      : DEFAULT_SETTINGS.nuclearModeEnabled,
+    nuclearModeType: (map.get('nuclear_mode_type') as any) || DEFAULT_SETTINGS.nuclearModeType,
   };
 };
 

@@ -39,26 +39,99 @@ function withAndroidWidget(config) {
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#FFFFFF"
-    android:padding="12dp"
+    android:padding="14dp"
     android:orientation="vertical">
 
+    <!-- Header: App Name & Status Pill -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <TextView
+            android:id="@+id/widget_brand"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="NAGGY"
+            android:textStyle="bold"
+            android:textColor="#FF5A45"
+            android:textSize="12sp"
+            android:letterSpacing="0.08" />
+
+        <TextView
+            android:id="@+id/widget_badge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="OVERDUE"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:textSize="10sp"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp"
+            android:background="#FF3B30" />
+    </LinearLayout>
+
+    <!-- Task Title -->
     <TextView
         android:id="@+id/widget_title"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Naggy Glance"
+        android:text="No pending tasks"
         android:textStyle="bold"
-        android:textColor="#FF5A45"
-        android:textSize="14sp" />
+        android:textColor="#1F2937"
+        android:textSize="15sp"
+        android:maxLines="2"
+        android:ellipsize="end"
+        android:layout_marginTop="6dp" />
 
+    <!-- Subtitle / Meta -->
     <TextView
         android:id="@+id/widget_desc"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Tap to open your pending tasks"
-        android:textColor="#666666"
+        android:text="Tap to open your agenda"
+        android:textColor="#6B7280"
         android:textSize="12sp"
-        android:layout_marginTop="4dp" />
+        android:layout_marginTop="2dp" />
+
+    <!-- 1-Tap Action Buttons Row -->
+    <LinearLayout
+        android:id="@+id/widget_actions_row"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp"
+        android:gravity="center_vertical">
+
+        <Button
+            android:id="@+id/widget_btn_complete"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="✓ Complete"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:background="#10B981" />
+
+        <Space
+            android:layout_width="8dp"
+            android:layout_height="match_parent" />
+
+        <Button
+            android:id="@+id/widget_btn_snooze"
+            android:layout_width="0dp"
+            android:layout_height="36dp"
+            android:layout_weight="1"
+            android:text="+15m Snooze"
+            android:textColor="#374151"
+            android:textSize="11sp"
+            android:background="#E5E7EB" />
+    </LinearLayout>
 </LinearLayout>
 `;
       fs.writeFileSync(path.join(layoutDir, 'naggy_widget_layout.xml'), widgetLayoutContent);
@@ -71,20 +144,100 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
+import android.view.View;
 import android.widget.RemoteViews;
+import java.io.File;
+import java.io.FileInputStream;
+import java.nio.charset.StandardCharsets;
+import org.json.JSONObject;
 
 public class NaggyWidgetProvider extends AppWidgetProvider {
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
         for (int appWidgetId : appWidgetIds) {
-            Intent intent = new Intent(context, MainActivity.class);
-            PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE);
-
-            RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.naggy_widget_layout);
-            views.setOnClickPendingIntent(R.id.widget_container, pendingIntent);
-
-            appWidgetManager.updateAppWidget(appWidgetId, views);
+            updateAppWidget(context, appWidgetManager, appWidgetId);
         }
+    }
+
+    private void updateAppWidget(Context context, AppWidgetManager appWidgetManager, int appWidgetId) {
+        RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.naggy_widget_layout);
+
+        String taskTitle = "All caught up! 🎉";
+        String taskDesc = "No pending tasks right now.";
+        String badgeText = "ALL CLEAR";
+        int badgeColor = 0xFF10B981;
+        boolean showActions = false;
+        String taskId = null;
+
+        try {
+            File file = new File(context.getFilesDir(), "naggy_widget_data.json");
+            if (file.exists()) {
+                FileInputStream fis = new FileInputStream(file);
+                byte[] data = new byte[(int) file.length()];
+                fis.read(data);
+                fis.close();
+                String content = new String(data, StandardCharsets.UTF_8);
+                JSONObject json = new JSONObject(content);
+
+                int overdueCount = json.optInt("overdueCount", 0);
+                int todayCount = json.optInt("todayCount", 0);
+                JSONObject topTask = json.optJSONObject("topOverdueTask");
+
+                if (topTask != null) {
+                    taskId = topTask.optString("id");
+                    taskTitle = topTask.optString("title", "Overdue Task");
+                    String dueTime = topTask.optString("dueTime", "");
+                    taskDesc = dueTime.isEmpty() ? "Overdue task" : "Due at " + dueTime + " (Nagging)";
+                    badgeText = overdueCount > 1 ? overdueCount + " OVERDUE" : "OVERDUE";
+                    badgeColor = 0xFFFF3B30;
+                    showActions = (taskId != null && !taskId.isEmpty());
+                } else if (todayCount > 0) {
+                    taskTitle = "You have " + todayCount + " task" + (todayCount > 1 ? "s" : "") + " today";
+                    taskDesc = "Tap to view today's scheduled agenda";
+                    badgeText = todayCount + " TODAY";
+                    badgeColor = 0xFF3B82F6;
+                    showActions = false;
+                }
+            }
+        } catch (Exception e) {
+            taskTitle = "Naggy Glance";
+            taskDesc = "Tap to open your pending tasks";
+        }
+
+        views.setTextViewText(R.id.widget_title, taskTitle);
+        views.setTextViewText(R.id.widget_desc, taskDesc);
+        views.setTextViewText(R.id.widget_badge, badgeText);
+        views.setInt(R.id.widget_badge, "setBackgroundColor", badgeColor);
+
+        // Container default click opens the app
+        Intent openAppIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("naggy://today"));
+        openAppIntent.setPackage(context.getPackageName());
+        openAppIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        PendingIntent openPending = PendingIntent.getActivity(context, 0, openAppIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        views.setOnClickPendingIntent(R.id.widget_container, openPending);
+
+        if (showActions && taskId != null) {
+            views.setViewVisibility(R.id.widget_actions_row, View.VISIBLE);
+
+            // Complete button deep link
+            Intent completeIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("naggy://widget-action?action=complete&taskId=" + Uri.encode(taskId)));
+            completeIntent.setPackage(context.getPackageName());
+            completeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent completePending = PendingIntent.getActivity(context, appWidgetId * 10 + 1, completeIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            views.setOnClickPendingIntent(R.id.widget_btn_complete, completePending);
+
+            // Snooze button deep link
+            Intent snoozeIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("naggy://widget-action?action=snooze&taskId=" + Uri.encode(taskId)));
+            snoozeIntent.setPackage(context.getPackageName());
+            snoozeIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            PendingIntent snoozePending = PendingIntent.getActivity(context, appWidgetId * 10 + 2, snoozeIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+            views.setOnClickPendingIntent(R.id.widget_btn_snooze, snoozePending);
+        } else {
+            views.setViewVisibility(R.id.widget_actions_row, View.GONE);
+        }
+
+        appWidgetManager.updateAppWidget(appWidgetId, views);
     }
 }
 `;

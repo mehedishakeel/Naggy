@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
+import * as Linking from 'expo-linking';
 import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { SettingsProvider } from '../context/SettingsContext';
@@ -16,6 +17,44 @@ function NavigationStack() {
   const { colors, isDark } = useTheme();
   const { activeAlarmTask, dismissAlarm } = useNotifications();
   const { completeTask, snoozeTask } = useTasks();
+
+  // Handle widget 1-tap deep link actions (complete / snooze)
+  useEffect(() => {
+    const handleUrl = async (event: { url: string }) => {
+      try {
+        const parsed = Linking.parse(event.url);
+        const isWidgetAction =
+          parsed.hostname === 'widget-action' ||
+          parsed.path === 'widget-action' ||
+          (parsed.path && parsed.path.includes('widget-action'));
+
+        if (isWidgetAction) {
+          const action = parsed.queryParams?.action as string | undefined;
+          const taskId = parsed.queryParams?.taskId as string | undefined;
+
+          if (taskId && action === 'complete') {
+            await completeTask(taskId);
+          } else if (taskId && action === 'snooze') {
+            await snoozeTask(taskId, 15);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to process deep link URL:', err);
+      }
+    };
+
+    // Process initial URL on launch
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleUrl({ url });
+      }
+    });
+
+    const subscription = Linking.addEventListener('url', handleUrl);
+    return () => {
+      subscription.remove();
+    };
+  }, [completeTask, snoozeTask]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

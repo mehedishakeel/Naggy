@@ -25,6 +25,8 @@ describe('Persistent Reminder Calculations', () => {
     alarmVolume: 1.0,
     stickyNotificationEnabled: true,
     hasCompletedOnboarding: true,
+    nuclearModeEnabled: false,
+    nuclearModeType: 'math',
   };
 
   test('computes rolling batch of triggers when interval is 10m', () => {

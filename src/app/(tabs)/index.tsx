@@ -19,6 +19,7 @@ import { TaskItem } from '../../components/TaskItem';
 import { QuickAddBar } from '../../components/QuickAddBar';
 import { ProgressBar } from '../../components/ProgressBar';
 import { EmptyState } from '../../components/EmptyState';
+import { TagFilterBar, filterTasksByTag } from '../../components/TagFilterBar';
 import { Task } from '../../types';
 import { ParsedTaskInput } from '../../utils/nlp';
 import { getTodayString } from '../../utils/date';
@@ -30,6 +31,7 @@ export default function TodayScreen() {
   const { settings } = useSettings();
   const { triggerAlarm } = useNotifications();
   const {
+    lists,
     overdueTasks,
     todayTasks,
     completedTasks,
@@ -43,6 +45,7 @@ export default function TodayScreen() {
 
   const [showCompleted, setShowCompleted] = useState(false);
   const [snoozeModalTask, setSnoozeModalTask] = useState<Task | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   // Check onboarding on first launch
   useEffect(() => {
@@ -81,7 +84,9 @@ export default function TodayScreen() {
     (t) => t.dueDate === getTodayString() || (t.completedAt && t.completedAt.startsWith(getTodayString()))
   );
 
-  const totalIncomplete = overdueTasks.length + todayTasks.length;
+  const filteredOverdue = filterTasksByTag(overdueTasks, selectedTag, lists);
+  const filteredToday = filterTasksByTag(todayTasks, selectedTag, lists);
+  const totalFiltered = filteredOverdue.length + filteredToday.length;
 
   return (
     <SafeAreaView edges={['top']} style={[styles.container, { backgroundColor: colors.background }]}>
@@ -142,8 +147,16 @@ export default function TodayScreen() {
           percentage={todayProgress.percentage}
         />
 
+        {/* Smart Tag Filter Chips */}
+        <TagFilterBar
+          tasks={[...overdueTasks, ...todayTasks]}
+          lists={lists}
+          selectedTag={selectedTag}
+          onSelectTag={setSelectedTag}
+        />
+
         {/* 1. OVERDUE SECTION */}
-        {overdueTasks.length > 0 && (
+        {filteredOverdue.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <View style={styles.sectionTag}>
@@ -154,7 +167,7 @@ export default function TodayScreen() {
               </View>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <TouchableOpacity
-                  onPress={() => triggerAlarm(overdueTasks[0])}
+                  onPress={() => triggerAlarm(filteredOverdue[0])}
                   style={[
                     styles.ringAlarmHeaderBtn,
                     { backgroundColor: colors.urgentLight, borderRadius: radii.pill },
@@ -167,13 +180,13 @@ export default function TodayScreen() {
                 </TouchableOpacity>
                 <View style={[styles.badgeCount, { backgroundColor: colors.urgentLight, borderRadius: radii.pill }]}>
                   <Text style={[typography.micro, { color: colors.urgent }]}>
-                    {overdueTasks.length}
+                    {filteredOverdue.length}
                   </Text>
                 </View>
               </View>
             </View>
 
-            {overdueTasks.map((task) => (
+            {filteredOverdue.map((task) => (
               <TaskItem
                 key={task.id}
                 task={task}
@@ -188,7 +201,7 @@ export default function TodayScreen() {
         )}
 
         {/* 2. TODAY SECTION */}
-        {todayTasks.length > 0 && (
+        {filteredToday.length > 0 && (
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={[typography.titleSmall, { color: colors.text }]}>
@@ -196,12 +209,12 @@ export default function TodayScreen() {
               </Text>
               <View style={[styles.badgeCount, { backgroundColor: colors.surfaceSecondary, borderRadius: radii.pill }]}>
                 <Text style={[typography.micro, { color: colors.textSecondary }]}>
-                  {todayTasks.length}
+                  {filteredToday.length}
                 </Text>
               </View>
             </View>
 
-            {todayTasks.map((task) => (
+            {filteredToday.map((task) => (
               <TaskItem
                 key={task.id}
                 task={task}
@@ -215,13 +228,21 @@ export default function TodayScreen() {
           </View>
         )}
 
-        {/* Empty State when no tasks */}
-        {totalIncomplete === 0 && (
+        {/* Empty State when no tasks or tag filter has no results */}
+        {totalFiltered === 0 && (
           <EmptyState
-            icon={completedTodayTasks.length > 0 ? 'checkmark-circle' : 'sunny-outline'}
-            title={completedTodayTasks.length > 0 ? 'All clear! Great job today 🎉' : 'No tasks for today'}
+            icon={selectedTag ? 'funnel-outline' : completedTodayTasks.length > 0 ? 'checkmark-circle' : 'sunny-outline'}
+            title={
+              selectedTag
+                ? `No tasks matching ${selectedTag}`
+                : completedTodayTasks.length > 0
+                ? 'All clear! Great job today 🎉'
+                : 'No tasks for today'
+            }
             description={
-              completedTodayTasks.length > 0
+              selectedTag
+                ? 'Try tapping "All" or choosing another tag filter chip.'
+                : completedTodayTasks.length > 0
                 ? 'All scheduled responsibilities are taken care of.'
                 : 'Enjoy your free time, or use the quick add bar below to schedule a task.'
             }
