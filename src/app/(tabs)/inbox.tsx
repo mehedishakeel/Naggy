@@ -8,7 +8,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -28,6 +28,7 @@ const LIST_ICONS = ['list', 'briefcase', 'person', 'heart', 'repeat', 'cart', 'b
 
 export default function InboxListsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors, typography, spacing, radii, cardStyle } = useTheme();
   const { lists, tasks, createList } = useTasks();
 
@@ -65,7 +66,7 @@ export default function InboxListsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingHorizontal: spacing.lg, paddingBottom: 110 }]}
+        contentContainerStyle={[styles.content, { paddingHorizontal: spacing.lg, paddingBottom: 84 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Built-in Inbox */}

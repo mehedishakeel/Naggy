@@ -12,7 +12,7 @@ import {
   Image,
   ActivityIndicator,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
 import { useSettings } from '../../context/SettingsContext';
@@ -31,6 +31,7 @@ import {
 } from '../../services/alarmSound';
 
 export default function SettingsScreen() {
+  const insets = useSafeAreaInsets();
   const { colors, typography, spacing, radii, mode, setThemeMode, cardStyle } = useTheme();
   const { settings, updateSettings, refreshSettings } = useSettings();
   const { permissionState, requestPermission, reconcile } = useNotifications();
@@ -152,7 +153,7 @@ export default function SettingsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingHorizontal: spacing.lg, paddingBottom: 110 }]}
+        contentContainerStyle={[styles.content, { paddingHorizontal: spacing.lg, paddingBottom: 84 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         {/* 1. APPEARANCE */}

@@ -1,10 +1,19 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function TabLayout() {
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
+
+  // Android navigation bar can be 3-button (~48dp) or gesture bar (~16-24dp).
+  // iOS home indicator is ~34dp.
+  const bottomInset = insets.bottom;
+  const baseHeight = 62;
+  const tabHeight = baseHeight + bottomInset;
+  const paddingBottom = bottomInset > 0 ? bottomInset + 2 : 8;
 
   return (
     <Tabs
@@ -18,9 +27,9 @@ export default function TabLayout() {
           borderTopWidth: 1,
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 8,
+          height: tabHeight,
+          paddingTop: 6,
+          paddingBottom: paddingBottom,
           position: 'absolute',
           bottom: 0,
           left: 0,
@@ -34,6 +43,12 @@ export default function TabLayout() {
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '600',
+          marginTop: 2,
+        },
+        tabBarItemStyle: {
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingVertical: 2,
         },
       }}
     >

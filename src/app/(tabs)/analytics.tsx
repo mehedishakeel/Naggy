@@ -6,7 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
@@ -16,6 +16,7 @@ import { PriorityBadge } from '../../components/PriorityBadge';
 
 export default function AnalyticsScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors, typography, spacing, radii, cardStyle } = useTheme();
   const { tasks } = useTasks();
 
@@ -40,7 +41,7 @@ export default function AnalyticsScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingHorizontal: spacing.lg, paddingBottom: 110 }]}
+        contentContainerStyle={[styles.content, { paddingHorizontal: spacing.lg, paddingBottom: 84 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         {/* 1. Daily Accountability Briefing Card */}

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useRouter, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, ActivityIndicator } from 'react-native';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from '../context/ThemeContext';
 import { SettingsProvider } from '../context/SettingsContext';
 import { NotificationProvider, useNotifications } from '../context/NotificationContext';
@@ -109,7 +109,7 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider initialMetrics={initialWindowMetrics}>
       <ThemeProvider>
         <SettingsProvider>
           <NotificationProvider>

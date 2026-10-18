@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { addDays, format, isSameDay } from 'date-fns';
 import { useTheme } from '../../context/ThemeContext';
@@ -17,6 +17,7 @@ import { formatISODate, formatDisplayDate } from '../../utils/date';
 
 export default function AgendaScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors, typography, spacing, radii, cardStyle } = useTheme();
   const { tasks, completeTask, reopenTask, deleteTask, snoozeTask } = useTasks();
 
@@ -119,7 +120,7 @@ export default function AgendaScreen() {
 
       {/* Agenda Task List */}
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingHorizontal: spacing.lg, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.content, { paddingHorizontal: spacing.lg, paddingBottom: 84 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.dayHeadingRow}>

@@ -7,7 +7,7 @@ import {
   StyleSheet,
   Modal,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -25,6 +25,7 @@ import { getTodayString } from '../../utils/date';
 
 export default function TodayScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors, typography, spacing, radii, cardStyle } = useTheme();
   const { settings } = useSettings();
   const { triggerAlarm } = useNotifications();
@@ -131,7 +132,7 @@ export default function TodayScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: spacing.lg, paddingBottom: 100 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingHorizontal: spacing.lg, paddingBottom: 170 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
         {/* Daily Progress Bar */}
@@ -259,7 +260,7 @@ export default function TodayScreen() {
       </ScrollView>
 
       {/* Floating Quick Add Bar right above tab bar */}
-      <View style={[styles.bottomBar, { paddingHorizontal: spacing.lg, paddingBottom: spacing.xs }]}>
+      <View style={[styles.bottomBar, { bottom: 72 + insets.bottom, paddingHorizontal: spacing.lg, paddingBottom: spacing.xs }]}>
         <QuickAddBar
           onAddTask={handleQuickAdd}
           onOpenFullModal={() => router.push('/task/new')}
