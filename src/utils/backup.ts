@@ -39,7 +39,33 @@ export const generateBackupData = (): BackupData => {
 };
 
 /**
- * Validates whether parsed object conforms to BackupData
+ * Whitelist of permitted AppSettings keys to prevent property injection
+ */
+const ALLOWED_SETTINGS_KEYS = new Set([
+  'theme',
+  'remindersEnabled',
+  'defaultReminderIntervalMinutes',
+  'defaultSnoozeMinutes',
+  'quietHoursEnabled',
+  'quietHoursStart',
+  'quietHoursEnd',
+  'escalationEnabled',
+  'missedOccurrencePolicy',
+  'startOfWeek',
+  'showCompletedTasks',
+  'soundEnabled',
+  'vibrationEnabled',
+  'alarmTone',
+  'voiceNaggingEnabled',
+  'alarmVolume',
+  'stickyNotificationEnabled',
+  'hasCompletedOnboarding',
+  'nuclearModeEnabled',
+  'nuclearModeType',
+]);
+
+/**
+ * Validates whether parsed object conforms to BackupData and sanitizes untrusted input
  */
 export const validateBackupPayload = (data: any): { isValid: boolean; error?: string } => {
   if (!data || typeof data !== 'object') {
@@ -54,10 +80,29 @@ export const validateBackupPayload = (data: any): { isValid: boolean; error?: st
     return { isValid: false, error: 'Missing or invalid "lists" collection in backup.' };
   }
 
-  // Basic task record validation
+  // Strict task record validation
   for (const t of data.tasks) {
-    if (!t.id || typeof t.title !== 'string') {
+    if (!t || typeof t !== 'object' || typeof t.id !== 'string' || !t.id.trim() || typeof t.title !== 'string') {
       return { isValid: false, error: 'Backup contains corrupted task records.' };
+    }
+  }
+
+  // Strict list record validation
+  for (const l of data.lists) {
+    if (!l || typeof l !== 'object' || typeof l.id !== 'string' || typeof l.name !== 'string') {
+      return { isValid: false, error: 'Backup contains corrupted list records.' };
+    }
+  }
+
+  // Settings validation & key sanitization
+  if (data.settings) {
+    if (typeof data.settings !== 'object') {
+      return { isValid: false, error: 'Backup contains invalid settings payload.' };
+    }
+    for (const key of Object.keys(data.settings)) {
+      if (!ALLOWED_SETTINGS_KEYS.has(key)) {
+        delete data.settings[key];
+      }
     }
   }
 
@@ -115,17 +160,27 @@ export const exportTasksCSV = async (): Promise<{ success: boolean; filePath?: s
     const lists = getAllLists();
     const listMap = new Map(lists.map((l) => [l.id, l.name]));
 
+    const sanitizeCsvCell = (value: string | null | undefined): string => {
+      if (value === null || value === undefined) return '""';
+      let str = String(value);
+      // OWASP CSV Injection Defense: Neutralize executable formulas (=, +, -, @, tab, cr, %)
+      if (/^[=+\-@\t\r%]/.test(str)) {
+        str = `'${str}`;
+      }
+      return `"${str.replace(/"/g, '""')}"`;
+    };
+
     const headers = ['ID', 'Title', 'Due Date', 'Due Time', 'Priority', 'List', 'Completed', 'Recurring', 'Notes'];
     const rows = tasks.map((t) => [
-      `"${t.id}"`,
-      `"${(t.title || '').replace(/"/g, '""')}"`,
-      `"${t.dueDate || ''}"`,
-      `"${t.dueTime || ''}"`,
-      `"${t.priority}"`,
-      `"${listMap.get(t.listId || '') || 'Inbox'}"`,
-      `"${t.isCompleted ? 'Yes' : 'No'}"`,
-      `"${t.isRecurring ? 'Yes' : 'No'}"`,
-      `"${(t.notes || '').replace(/"/g, '""')}"`,
+      sanitizeCsvCell(t.id),
+      sanitizeCsvCell(t.title),
+      sanitizeCsvCell(t.dueDate),
+      sanitizeCsvCell(t.dueTime),
+      sanitizeCsvCell(t.priority),
+      sanitizeCsvCell(listMap.get(t.listId || '') || 'Inbox'),
+      sanitizeCsvCell(t.isCompleted ? 'Yes' : 'No'),
+      sanitizeCsvCell(t.isRecurring ? 'Yes' : 'No'),
+      sanitizeCsvCell(t.notes),
     ]);
 
     const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');

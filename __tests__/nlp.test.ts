@@ -49,4 +49,15 @@ describe('Natural Language Task Parser', () => {
     expect(result.hasParsedElements).toBe(false);
     expect(result.dueTime).toBeNull();
   });
+
+  test('safely handles non-string input and caps oversized inputs to prevent ReDoS', () => {
+    // Non-string
+    const nonStringResult = parseNaturalLanguageTask(null as any);
+    expect(nonStringResult.cleanTitle).toBe('');
+
+    // Extremely long string (10,000 characters)
+    const longInput = 'A'.repeat(10000);
+    const longResult = parseNaturalLanguageTask(longInput);
+    expect(longResult.cleanTitle.length).toBeLessThanOrEqual(500);
+  });
 });

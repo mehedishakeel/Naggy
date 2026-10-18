@@ -101,6 +101,23 @@ export async function checkAppUpdates(): Promise<UpdateInfo> {
 }
 
 /**
+ * Validate that an external URL uses HTTPS and belongs to trusted GitHub infrastructure
+ */
+export function isSafeHttpsUrl(url: string): boolean {
+  if (!url || typeof url !== 'string') return false;
+  try {
+    const parsed = new URL(url);
+    const trustedHosts = ['github.com', 'api.github.com', 'objects.githubusercontent.com'];
+    return (
+      parsed.protocol === 'https:' &&
+      trustedHosts.some((host) => parsed.hostname === host || parsed.hostname.endsWith(`.${host}`))
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Trigger update flow: checks GitHub, prompts user if new version is found,
  * or shows "up to date" notification when manually checked.
  */
@@ -119,7 +136,7 @@ export async function promptForUpdates(options?: { silentIfCurrent?: boolean }):
           {
             text: 'View Notes',
             onPress: () => {
-              if (info.releaseUrl) {
+              if (info.releaseUrl && isSafeHttpsUrl(info.releaseUrl)) {
                 Linking.openURL(info.releaseUrl);
               }
             },
@@ -128,7 +145,7 @@ export async function promptForUpdates(options?: { silentIfCurrent?: boolean }):
             text: 'Download APK',
             style: 'default',
             onPress: () => {
-              if (info.downloadUrl) {
+              if (info.downloadUrl && isSafeHttpsUrl(info.downloadUrl)) {
                 Linking.openURL(info.downloadUrl);
               }
             },

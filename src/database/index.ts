@@ -504,10 +504,34 @@ export const getSettings = (): AppSettings => {
   };
 };
 
+const VALID_SETTINGS_KEYS = new Set([
+  'theme',
+  'remindersEnabled',
+  'defaultReminderIntervalMinutes',
+  'defaultSnoozeMinutes',
+  'quietHoursEnabled',
+  'quietHoursStart',
+  'quietHoursEnd',
+  'escalationEnabled',
+  'missedOccurrencePolicy',
+  'startOfWeek',
+  'showCompletedTasks',
+  'soundEnabled',
+  'vibrationEnabled',
+  'alarmTone',
+  'voiceNaggingEnabled',
+  'alarmVolume',
+  'stickyNotificationEnabled',
+  'hasCompletedOnboarding',
+  'nuclearModeEnabled',
+  'nuclearModeType',
+]);
+
 export const saveSettings = (settings: Partial<AppSettings>): void => {
   const db = getDatabase();
   db.withTransactionSync(() => {
     for (const [key, val] of Object.entries(settings)) {
+      if (!VALID_SETTINGS_KEYS.has(key)) continue;
       const dbKey = key.replace(/[A-Z]/g, (letter) => `_${letter.toLowerCase()}`);
       db.runSync(
         'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',

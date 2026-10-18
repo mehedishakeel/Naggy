@@ -18,11 +18,18 @@ function NavigationStack() {
   const { activeAlarmTask, dismissAlarm } = useNotifications();
   const { completeTask, snoozeTask } = useTasks();
 
-  // Handle widget 1-tap deep link actions (complete / snooze)
+  // Handle widget 1-tap deep link actions (complete / snooze) with strict security validation
   useEffect(() => {
     const handleUrl = async (event: { url: string }) => {
       try {
+        if (!event?.url || typeof event.url !== 'string') return;
         const parsed = Linking.parse(event.url);
+
+        // Security: Validate scheme is strictly 'naggy'
+        if (parsed.scheme && parsed.scheme.toLowerCase() !== 'naggy') {
+          return;
+        }
+
         const isWidgetAction =
           parsed.hostname === 'widget-action' ||
           parsed.path === 'widget-action' ||
@@ -32,9 +39,19 @@ function NavigationStack() {
           const action = parsed.queryParams?.action as string | undefined;
           const taskId = parsed.queryParams?.taskId as string | undefined;
 
-          if (taskId && action === 'complete') {
+          // Security: Whitelist valid actions
+          if (!action || !['complete', 'snooze'].includes(action)) {
+            return;
+          }
+
+          // Security: Validate taskId format (alphanumeric, dash, underscore, max 64 chars)
+          if (!taskId || typeof taskId !== 'string' || !/^[a-zA-Z0-9_\-]{1,64}$/.test(taskId)) {
+            return;
+          }
+
+          if (action === 'complete') {
             await completeTask(taskId);
-          } else if (taskId && action === 'snooze') {
+          } else if (action === 'snooze') {
             await snoozeTask(taskId, 15);
           }
         }

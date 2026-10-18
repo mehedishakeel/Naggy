@@ -14,7 +14,19 @@ export interface ParsedTaskInput {
 }
 
 export const parseNaturalLanguageTask = (input: string): ParsedTaskInput => {
-  let title = input.trim();
+  if (typeof input !== 'string') {
+    return {
+      cleanTitle: '',
+      dueDate: null,
+      dueTime: null,
+      isRecurring: false,
+      recurrenceRule: null,
+      hasParsedElements: false,
+    };
+  }
+
+  // Security: Cap maximum input length to 500 characters to prevent ReDoS / excessive regex compute
+  let title = input.slice(0, 500).trim();
   if (!title) {
     return {
       cleanTitle: '',

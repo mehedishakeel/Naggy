@@ -50,4 +50,36 @@ describe('Backup Validation', () => {
     expect(res.isValid).toBe(false);
     expect(res.error).toContain('corrupted');
   });
+
+  test('rejects corrupted list records', () => {
+    const corrupted = {
+      version: 1,
+      lists: [{ id: 123 }], // missing name, non-string id
+      tasks: [{ id: 'task-1', title: 'Valid' }],
+    };
+
+    const res = validateBackupPayload(corrupted);
+    expect(res.isValid).toBe(false);
+    expect(res.error).toContain('list records');
+  });
+
+  test('sanitizes and strips unauthorized settings properties (property injection defense)', () => {
+    const payload = {
+      version: 1,
+      lists: [{ id: 'list-1', name: 'Work' }],
+      tasks: [{ id: 'task-1', title: 'Valid' }],
+      settings: {
+        theme: 'dark',
+        __proto__: { admin: true },
+        maliciousKey: 'drop table tasks',
+        remindersEnabled: true,
+      },
+    };
+
+    const res = validateBackupPayload(payload);
+    expect(res.isValid).toBe(true);
+    expect(payload.settings.theme).toBe('dark');
+    expect(payload.settings.remindersEnabled).toBe(true);
+    expect((payload.settings as any).maliciousKey).toBeUndefined();
+  });
 });
