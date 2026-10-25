@@ -10,8 +10,12 @@ import {
   scheduleRemindersForTask,
   ACTION_DONE,
   ACTION_SNOOZE,
+  ACTION_SNOOZE_15,
+  ACTION_SNOOZE_INLINE,
+  ACTION_DISMISS,
   NotificationPermissionState,
 } from '../services/notifications';
+import { stopAlarmSoundAndSpeech } from '../services/alarmSound';
 import {
   getTaskById,
   getAllTasks,
@@ -136,7 +140,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
       const settings = getSettings();
 
       if (actionIdentifier === ACTION_DONE) {
-        // User marked task as DONE directly from the persistent notification
+        // User marked task as complete directly from the lock-screen / notification banner
+        await stopAlarmSoundAndSpeech();
+        try {
+          await Notifications.dismissNotificationAsync(notification.request.identifier);
+        } catch {
+          // Ignored
+        }
+
         if (task.isRecurring && task.recurrenceRule && task.dueDate) {
           addCompletionHistory({
             id: `history-${Date.now()}`,
@@ -168,8 +179,33 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
           await cancelRemindersForTask(task.id);
         }
         setActiveAlarmTask(null);
-      } else if (actionIdentifier === ACTION_SNOOZE) {
-        const snoozeTime = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+      } else if (
+        actionIdentifier === ACTION_SNOOZE ||
+        actionIdentifier === ACTION_SNOOZE_15 ||
+        actionIdentifier === ACTION_SNOOZE_INLINE
+      ) {
+        // Quick snooze (+15m) or Inline Snooze Picker directly from notification shade
+        await stopAlarmSoundAndSpeech();
+        try {
+          await Notifications.dismissNotificationAsync(notification.request.identifier);
+        } catch {
+          // Ignored
+        }
+
+        let minutes = 15;
+        // Check if user submitted custom minutes via inline notification text input
+        if (
+          actionIdentifier === ACTION_SNOOZE_INLINE &&
+          'userText' in response &&
+          typeof (response as any).userText === 'string'
+        ) {
+          const userEntered = parseInt((response as any).userText.trim(), 10);
+          if (!isNaN(userEntered) && userEntered > 0 && userEntered <= 1440) {
+            minutes = userEntered;
+          }
+        }
+
+        const snoozeTime = new Date(Date.now() + minutes * 60 * 1000).toISOString();
         const updatedTask = {
           ...task,
           snoozeUntil: snoozeTime,
@@ -178,6 +214,15 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
         saveTask(updatedTask);
         await scheduleRemindersForTask(updatedTask, settings);
         setActiveAlarmTask(null);
+      } else if (actionIdentifier === ACTION_DISMISS) {
+        // User silenced the alarm tone and dismissed the banner from lock screen
+        await stopAlarmSoundAndSpeech();
+        setActiveAlarmTask(null);
+        try {
+          await Notifications.dismissNotificationAsync(notification.request.identifier);
+        } catch {
+          // Ignored
+        }
       } else if (actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER) {
         // User tapped the notification -> verify task is still incomplete before opening full screen alarm
         const fresh = getTaskById(task.id);

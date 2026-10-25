@@ -2,6 +2,13 @@ import {
   computeReminderTriggers,
   isWithinQuietHours,
   adjustForQuietHours,
+  setupNotificationChannelsAndCategories,
+  scheduleRemindersForTask,
+  NOTIFICATION_CATEGORY_TASK,
+  ACTION_DONE,
+  ACTION_SNOOZE_15,
+  ACTION_SNOOZE_INLINE,
+  ACTION_DISMISS,
 } from '../src/services/notifications';
 import { Task, AppSettings } from '../src/types';
 
@@ -181,6 +188,62 @@ describe('Persistent Reminder Calculations', () => {
 
     expect(Notifications.cancelScheduledNotificationAsync).toHaveBeenCalledWith('notif-1');
     expect(Notifications.dismissNotificationAsync).toHaveBeenCalledWith('pres-1');
+  });
+
+  test('setupNotificationChannelsAndCategories registers interactive actions with inline snooze', async () => {
+    const Notifications = require('expo-notifications');
+    Notifications.setNotificationCategoryAsync.mockClear();
+
+    await setupNotificationChannelsAndCategories();
+
+    expect(Notifications.setNotificationCategoryAsync).toHaveBeenCalledWith(
+      NOTIFICATION_CATEGORY_TASK,
+      expect.arrayContaining([
+        expect.objectContaining({ identifier: ACTION_DONE, buttonTitle: '✓ Complete' }),
+        expect.objectContaining({ identifier: ACTION_SNOOZE_15, buttonTitle: '+15m Snooze' }),
+        expect.objectContaining({
+          identifier: ACTION_SNOOZE_INLINE,
+          buttonTitle: '⏰ Snooze Mins...',
+          textInput: expect.objectContaining({ placeholder: 'Minutes (e.g. 30)' }),
+        }),
+        expect.objectContaining({ identifier: ACTION_DISMISS, buttonTitle: '✕ Silence Nag' }),
+      ])
+    );
+  });
+
+  test('scheduleRemindersForTask schedules with sticky ongoing priority and task category', async () => {
+    const Notifications = require('expo-notifications');
+    Notifications.scheduleNotificationAsync.mockClear();
+
+    const overdueTask: Task = {
+      id: 'task-sticky-nag',
+      title: 'Fix critical bug',
+      dueDate: '2026-10-18',
+      dueTime: '10:00',
+      isAllDay: false,
+      priority: 'urgent',
+      isRecurring: false,
+      remindAtDue: true,
+      reminderIntervalMinutes: 10,
+      escalateReminders: false,
+      isCompleted: false,
+      isArchived: false,
+      createdAt: '2026-10-18T00:00:00Z',
+      updatedAt: '2026-10-18T00:00:00Z',
+    };
+
+    await scheduleRemindersForTask(overdueTask, dummySettings);
+
+    expect(Notifications.scheduleNotificationAsync).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: expect.objectContaining({
+          categoryIdentifier: NOTIFICATION_CATEGORY_TASK,
+          sticky: true,
+          autoDismiss: false,
+          priority: Notifications.AndroidNotificationPriority.MAX,
+        }),
+      })
+    );
   });
 });
 

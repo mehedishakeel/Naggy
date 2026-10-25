@@ -682,10 +682,10 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* ANDROID WIDGET & STICKY LOCK SCREEN */}
+        {/* ACTIONABLE NOTIFICATIONS & ANDROID WIDGET */}
         <View style={styles.section}>
           <Text style={[typography.caption, styles.sectionTitle, { color: colors.textSecondary }]}>
-            ANDROID WIDGET & STICKY LOCK SCREEN
+            ACTIONABLE NOTIFICATIONS & ANDROID WIDGET
           </Text>
           <View
             style={[
@@ -697,9 +697,9 @@ export default function SettingsScreen() {
             {/* Sticky Lock Screen Toggle */}
             <View style={[styles.settingRow, { borderBottomColor: colors.borderSubtle, borderBottomWidth: 1 }]}>
               <View style={styles.rowLabelContainer}>
-                <Text style={[typography.bodyMedium, { color: colors.text }]}>Sticky Lock Screen Nag</Text>
+                <Text style={[typography.bodyMedium, { color: colors.text }]}>Sticky Ongoing Priority</Text>
                 <Text style={[typography.caption, { color: colors.textSecondary }]}>
-                  Pins top overdue task to lock screen with un-swipeable ongoing priority
+                  Pins overdue alerts to lock screen with un-swipeable ongoing priority until resolved
                 </Text>
               </View>
               <Switch
@@ -709,6 +709,54 @@ export default function SettingsScreen() {
                 }}
                 trackColor={{ false: colors.border, true: colors.primary }}
               />
+            </View>
+
+            {/* Actionable Notification Buttons Info */}
+            <View
+              style={{
+                padding: 14,
+                borderBottomColor: colors.borderSubtle,
+                borderBottomWidth: 1,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                <Ionicons name="notifications-outline" size={16} color={colors.primary} />
+                <Text style={[typography.bodyMedium, { color: colors.text, fontWeight: '700' }]}>
+                  Native Lock-Screen Actions
+                </Text>
+              </View>
+              <Text style={[typography.caption, { color: colors.textSecondary, marginBottom: 10, lineHeight: 18 }]}>
+                Resolve tasks straight from your notification shade without opening the app:
+              </Text>
+              <View style={{ gap: 6 }}>
+                {[
+                  { icon: 'checkmark-circle', label: '✓ Complete', desc: 'Marks task done immediately' },
+                  { icon: 'alarm-outline', label: '+15m Snooze', desc: 'Quick 15-minute nag postponement' },
+                  { icon: 'create-outline', label: '⏰ Snooze Mins...', desc: 'Inline Snooze Picker to type custom minutes' },
+                  { icon: 'close-circle-outline', label: '✕ Silence Nag', desc: 'Silences audio & dismisses banner' },
+                ].map((act) => (
+                  <View
+                    key={act.label}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: colors.surfaceSecondary,
+                      borderRadius: radii.sm,
+                      paddingVertical: 6,
+                      paddingHorizontal: 10,
+                      gap: 8,
+                    }}
+                  >
+                    <Ionicons name={act.icon as any} size={14} color={colors.primary} />
+                    <Text style={[typography.micro, { color: colors.text, fontWeight: '700', width: 110 }]}>
+                      {act.label}
+                    </Text>
+                    <Text style={[typography.micro, { color: colors.textSecondary, flex: 1 }]}>
+                      {act.desc}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
 
             {/* Glanceable Widget Card Preview */}

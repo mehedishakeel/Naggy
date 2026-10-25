@@ -33,7 +33,10 @@ Notifications.setNotificationHandler({
 
 export const NOTIFICATION_CATEGORY_TASK = 'naggy-task-actions';
 export const ACTION_DONE = 'ACTION_MARK_DONE';
-export const ACTION_SNOOZE = 'ACTION_SNOOZE';
+export const ACTION_SNOOZE_15 = 'ACTION_SNOOZE_15';
+export const ACTION_SNOOZE = ACTION_SNOOZE_15; // Backwards-compatible alias
+export const ACTION_SNOOZE_INLINE = 'ACTION_SNOOZE_INLINE';
+export const ACTION_DISMISS = 'ACTION_DISMISS';
 
 export interface NotificationPermissionState {
   granted: boolean;
@@ -42,7 +45,7 @@ export interface NotificationPermissionState {
 }
 
 /**
- * Configure notification categories (actions like Done, Snooze) and Android channels
+ * Configure notification categories (actions like Done, Snooze, Inline Snooze Picker, Dismiss) and Android channels
  */
 export const setupNotificationChannelsAndCategories = async (): Promise<void> => {
   try {
@@ -62,20 +65,39 @@ export const setupNotificationChannelsAndCategories = async (): Promise<void> =>
       });
     }
 
-    // 2. Notification Category with actions
+    // 2. Notification Category with interactive action buttons and inline text response
     await Notifications.setNotificationCategoryAsync(NOTIFICATION_CATEGORY_TASK, [
       {
         identifier: ACTION_DONE,
-        buttonTitle: '✓ Mark as Done',
+        buttonTitle: '✓ Complete',
         options: {
           opensAppToForeground: false,
         },
       },
       {
-        identifier: ACTION_SNOOZE,
-        buttonTitle: '⏰ Snooze 15m',
+        identifier: ACTION_SNOOZE_15,
+        buttonTitle: '+15m Snooze',
         options: {
           opensAppToForeground: false,
+        },
+      },
+      {
+        identifier: ACTION_SNOOZE_INLINE,
+        buttonTitle: '⏰ Snooze Mins...',
+        textInput: {
+          submitButtonTitle: 'Snooze',
+          placeholder: 'Minutes (e.g. 30)',
+        },
+        options: {
+          opensAppToForeground: false,
+        },
+      },
+      {
+        identifier: ACTION_DISMISS,
+        buttonTitle: '✕ Silence Nag',
+        options: {
+          opensAppToForeground: false,
+          isDestructive: true,
         },
       },
     ]);
@@ -317,6 +339,8 @@ export const scheduleRemindersForTask = async (
         ? `${task.notes}`
         : `Scheduled for ${task.dueTime ? formatDisplayTime(task.dueTime) : 'today'}.`;
 
+      const isSticky = isSubsequentNag || task.priority === 'urgent' || settings.stickyNotificationEnabled;
+
       const notificationId = await Notifications.scheduleNotificationAsync({
         content: {
           title,
@@ -331,6 +355,8 @@ export const scheduleRemindersForTask = async (
           sound: settings.soundEnabled ? 'default' : undefined,
           vibrate: settings.vibrationEnabled ? [0, 250, 250, 250] : undefined,
           priority: Notifications.AndroidNotificationPriority.MAX,
+          sticky: isSticky,
+          autoDismiss: false,
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DATE,
