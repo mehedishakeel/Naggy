@@ -20,6 +20,7 @@ import { QuickAddBar } from '../../components/QuickAddBar';
 import { ProgressBar } from '../../components/ProgressBar';
 import { EmptyState } from '../../components/EmptyState';
 import { TagFilterBar, filterTasksByTag } from '../../components/TagFilterBar';
+import { FocusTimerModal } from '../../components/FocusTimerModal';
 import { Task } from '../../types';
 import { ParsedTaskInput } from '../../utils/nlp';
 import { getTodayString } from '../../utils/date';
@@ -46,6 +47,8 @@ export default function TodayScreen() {
   const [showCompleted, setShowCompleted] = useState(false);
   const [snoozeModalTask, setSnoozeModalTask] = useState<Task | null>(null);
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [focusModalTask, setFocusModalTask] = useState<Task | null>(null);
+  const [isFocusModalOpen, setIsFocusModalOpen] = useState(false);
 
   // Check onboarding on first launch
   useEffect(() => {
@@ -102,6 +105,21 @@ export default function TodayScreen() {
         </View>
 
         <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => {
+              setFocusModalTask(null);
+              setIsFocusModalOpen(true);
+            }}
+            activeOpacity={0.8}
+            style={[
+              styles.headerBtn,
+              cardStyle,
+              { borderRadius: radii.pill, marginRight: spacing.xs },
+            ]}
+          >
+            <Ionicons name="timer-outline" size={19} color={colors.primary} />
+          </TouchableOpacity>
+
           <TouchableOpacity
             onPress={() => router.push('/search')}
             activeOpacity={0.8}
@@ -194,6 +212,10 @@ export default function TodayScreen() {
                 onToggleComplete={() => completeTask(task.id)}
                 onLongPress={() => setSnoozeModalTask(task)}
                 onSnoozeQuick={() => setSnoozeModalTask(task)}
+                onStartFocus={() => {
+                  setFocusModalTask(task);
+                  setIsFocusModalOpen(true);
+                }}
                 onDelete={() => deleteTask(task.id)}
               />
             ))}
@@ -222,6 +244,10 @@ export default function TodayScreen() {
                 onToggleComplete={() => completeTask(task.id)}
                 onLongPress={() => setSnoozeModalTask(task)}
                 onSnoozeQuick={() => setSnoozeModalTask(task)}
+                onStartFocus={() => {
+                  setFocusModalTask(task);
+                  setIsFocusModalOpen(true);
+                }}
                 onDelete={() => deleteTask(task.id)}
               />
             ))}
@@ -357,6 +383,19 @@ export default function TodayScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* Pomodoro Focus Mode Modal */}
+      <FocusTimerModal
+        visible={isFocusModalOpen}
+        task={focusModalTask}
+        onClose={() => {
+          setIsFocusModalOpen(false);
+          setFocusModalTask(null);
+        }}
+        onCompleteTask={(taskId) => {
+          completeTask(taskId);
+        }}
+      />
     </SafeAreaView>
   );
 }

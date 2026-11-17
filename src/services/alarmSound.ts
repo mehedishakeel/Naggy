@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
-import { AlarmTone } from '../types';
+import { AlarmTone, NaggyPersona } from '../types';
 
 // Map tone IDs to bundled WAV assets
 const TONE_ASSETS: Record<Exclude<AlarmTone, 'none'>, any> = {
@@ -17,6 +17,38 @@ export interface ToneOption {
   description: string;
   icon: string;
 }
+
+export interface PersonaOption {
+  id: NaggyPersona;
+  label: string;
+  tagline: string;
+  description: string;
+  icon: string;
+}
+
+export const AVAILABLE_PERSONAS: PersonaOption[] = [
+  {
+    id: 'coach',
+    label: 'Friendly Coach',
+    tagline: 'Upbeat & Motivating',
+    description: 'Empowering nudges that celebrate your momentum and keep you focused',
+    icon: 'fitness-outline',
+  },
+  {
+    id: 'mom',
+    label: 'Sarcastic Mom',
+    tagline: 'Playful Guilt-Trips',
+    description: 'Loving guilt-trips and witty banter that make procrastination impossible',
+    icon: 'heart-half-outline',
+  },
+  {
+    id: 'sergeant',
+    label: 'Drill Sergeant',
+    tagline: 'Zero Excuses',
+    description: 'Urgent, high-command directives designed to shock you into rapid execution',
+    icon: 'shield-outline',
+  },
+];
 
 export const AVAILABLE_TONES: ToneOption[] = [
   {
@@ -56,13 +88,33 @@ let isAlarmActive = false;
 let speechLoopTimer: any = null;
 let previewTimer: any = null;
 
-// Voice nagging phrases to randomize or cycle through
-const NAG_PHRASES = [
-  (title: string) => `Attention! Your task, ${title}, is overdue. Time to get it done!`,
-  (title: string) => `Naggy reminder: ${title} needs your attention right now!`,
-  (title: string) => `Don't put it off. Complete ${title} today!`,
-  (title: string) => `Still waiting on: ${title}. Let's take action!`,
-];
+// Persona-driven spoken phrase collections
+export const PERSONA_PHRASES: Record<NaggyPersona, ((title: string) => string)[]> = {
+  coach: [
+    (title: string) => `You've got this! Time to tackle: ${title}. Let's make today count!`,
+    (title: string) => `Friendly nudge: ${title} is ready for you. Knock it out and feel great!`,
+    (title: string) => `Focus mode! Complete ${title} right now and keep your streak alive!`,
+    (title: string) => `Champions take action. Finish ${title} and conquer the day!`,
+  ],
+  mom: [
+    (title: string) => `Still haven't done ${title}? I'm not mad, I'm just disappointed.`,
+    (title: string) => `Oh, look who's ignoring ${title} again! Do I have to do everything myself?`,
+    (title: string) => `You said you'd do ${title} an hour ago. Put the phone down and get to it!`,
+    (title: string) => `Don't make me tell you twice. Finish ${title} right now!`,
+  ],
+  sergeant: [
+    (title: string) => `ATTENTION! Task ${title} is OVERDUE! DROP AND COMPLETE IT NOW!`,
+    (title: string) => `NO EXCUSES! Move your hands and execute ${title} immediately!`,
+    (title: string) => `DO YOU HEAR ME?! Task ${title} requires combat focus! EXECUTE!`,
+    (title: string) => `MISSION CRITICAL: ${title} will NOT complete itself! MOVE, MOVE, MOVE!`,
+  ],
+};
+
+const PERSONA_VOICE_CONFIGS: Record<NaggyPersona, { rate: number; pitch: number }> = {
+  coach: { rate: 0.98, pitch: 1.08 },
+  mom: { rate: 0.92, pitch: 1.15 },
+  sergeant: { rate: 1.08, pitch: 0.88 },
+};
 
 /**
  * Configure global audio mode so alarms play clearly even if device is in silent mode
@@ -89,11 +141,13 @@ export const startAlarmSoundAndSpeech = async ({
   tone = 'radar',
   voiceEnabled = true,
   volume = 1.0,
+  persona = 'coach',
 }: {
   taskTitle: string;
   tone?: AlarmTone;
   voiceEnabled?: boolean;
   volume?: number;
+  persona?: NaggyPersona;
 }): Promise<void> => {
   // Always silence prior playback first
   await stopAlarmSoundAndSpeech();
@@ -118,21 +172,23 @@ export const startAlarmSoundAndSpeech = async ({
     }
   }
 
-  // 2. Start Spoken Nagging
+  // 2. Start Spoken Nagging with selected Persona
   if (voiceEnabled && taskTitle) {
     let phraseIndex = 0;
+    const phrases = PERSONA_PHRASES[persona] || PERSONA_PHRASES.coach;
+    const voiceConfig = PERSONA_VOICE_CONFIGS[persona] || PERSONA_VOICE_CONFIGS.coach;
 
     const speakNextNag = () => {
       if (!isAlarmActive) return;
 
-      const getPhrase = NAG_PHRASES[phraseIndex % NAG_PHRASES.length];
+      const getPhrase = phrases[phraseIndex % phrases.length];
       const spokenText = getPhrase(taskTitle);
       phraseIndex++;
 
       try {
         Speech.speak(spokenText, {
-          rate: 0.95,
-          pitch: 1.05,
+          rate: voiceConfig.rate,
+          pitch: voiceConfig.pitch,
           volume: Math.max(0.1, Math.min(1, volume)),
           onDone: () => {
             if (isAlarmActive) {
@@ -219,15 +275,23 @@ export const previewAlarmTone = async (tone: AlarmTone, volume = 1.0): Promise<v
 };
 
 /**
- * Speak a short voice nagging sample (used in Settings)
+ * Speak a short voice nagging sample based on selected Persona (used in Settings)
  */
-export const previewVoiceNag = async (taskTitle = 'Pay electricity bill', volume = 1.0): Promise<void> => {
+export const previewVoiceNag = async (
+  taskTitle = 'Review project proposal',
+  volume = 1.0,
+  persona: NaggyPersona = 'coach'
+): Promise<void> => {
   await stopAlarmSoundAndSpeech();
 
+  const phrases = PERSONA_PHRASES[persona] || PERSONA_PHRASES.coach;
+  const samplePhrase = phrases[0](taskTitle);
+  const voiceConfig = PERSONA_VOICE_CONFIGS[persona] || PERSONA_VOICE_CONFIGS.coach;
+
   try {
-    Speech.speak(`Attention! Your task, ${taskTitle}, is overdue. Time to get it done!`, {
-      rate: 0.95,
-      pitch: 1.05,
+    Speech.speak(samplePhrase, {
+      rate: voiceConfig.rate,
+      pitch: voiceConfig.pitch,
       volume: Math.max(0.1, Math.min(1, volume)),
     });
   } catch {

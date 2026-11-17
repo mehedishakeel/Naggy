@@ -29,6 +29,7 @@ const defaultSettings: AppSettings = {
   hasCompletedOnboarding: false,
   nuclearModeEnabled: false,
   nuclearModeType: 'math',
+  naggyPersona: 'coach',
 };
 
 const SettingsContext = createContext<SettingsContextValue | undefined>(undefined);

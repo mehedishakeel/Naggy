@@ -22,6 +22,7 @@ interface TaskItemProps {
   onLongPress?: () => void;
   onSnoozeQuick?: () => void;
   onDelete?: () => void;
+  onStartFocus?: () => void;
 }
 
 export const TaskItem: React.FC<TaskItemProps> = ({
@@ -31,6 +32,7 @@ export const TaskItem: React.FC<TaskItemProps> = ({
   onLongPress,
   onSnoozeQuick,
   onDelete,
+  onStartFocus,
 }) => {
   const { colors, typography, radii, spacing, cardStyle } = useTheme();
   const [translateX] = useState(() => new Animated.Value(0));
@@ -374,6 +376,20 @@ export const TaskItem: React.FC<TaskItemProps> = ({
                 ]}
               >
                 <Ionicons name="time-outline" size={16} color={colors.textSecondary} />
+              </TouchableOpacity>
+            )}
+
+            {/* Quick Focus Sprint Button */}
+            {!task.isCompleted && onStartFocus && (
+              <TouchableOpacity
+                onPress={onStartFocus}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                style={[
+                  styles.quickSnoozeBtn,
+                  { backgroundColor: colors.primary + '18', borderRadius: radii.pill, marginLeft: 6 },
+                ]}
+              >
+                <Ionicons name="timer-outline" size={16} color={colors.primary} />
               </TouchableOpacity>
             )}
           </View>

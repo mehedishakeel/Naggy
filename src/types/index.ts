@@ -73,6 +73,8 @@ export type AlarmTone = 'radar' | 'classic' | 'chime' | 'bell' | 'none';
 
 export type NuclearChallengeType = 'math' | 'tap';
 
+export type NaggyPersona = 'coach' | 'mom' | 'sergeant';
+
 export interface AppSettings {
   theme: 'system' | 'light' | 'dark';
   remindersEnabled: boolean;
@@ -94,6 +96,7 @@ export interface AppSettings {
   hasCompletedOnboarding: boolean;
   nuclearModeEnabled: boolean;
   nuclearModeType: NuclearChallengeType;
+  naggyPersona: NaggyPersona;
 }
 
 

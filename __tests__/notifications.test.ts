@@ -34,6 +34,7 @@ describe('Persistent Reminder Calculations', () => {
     hasCompletedOnboarding: true,
     nuclearModeEnabled: false,
     nuclearModeType: 'math',
+    naggyPersona: 'coach',
   };
 
   test('computes rolling batch of triggers when interval is 10m', () => {

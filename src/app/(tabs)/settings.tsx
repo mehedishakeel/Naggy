@@ -20,12 +20,13 @@ import { useNotifications } from '../../context/NotificationContext';
 import { useTasks } from '../../context/TaskContext';
 import { exportBackupJSON, exportTasksCSV } from '../../utils/backup';
 import { clearCompletedTasks, resetDatabase } from '../../database';
-import { MissedOccurrencePolicy, AlarmTone, NuclearChallengeType } from '../../types';
+import { MissedOccurrencePolicy, AlarmTone, NuclearChallengeType, NaggyPersona } from '../../types';
 import { NuclearChallengeModal } from '../../components/NuclearChallengeModal';
 
 import { getCurrentAppVersion, promptForUpdates } from '../../services/updates';
 import {
   AVAILABLE_TONES,
+  AVAILABLE_PERSONAS,
   previewAlarmTone,
   previewVoiceNag,
   stopAlarmSoundAndSpeech,
@@ -39,7 +40,7 @@ export default function SettingsScreen() {
   const { refreshTasks, overdueTasks, todayTasks } = useTasks();
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [playingTone, setPlayingTone] = useState<AlarmTone | null>(null);
-  const [isSpeakingVoice, setIsSpeakingVoice] = useState(false);
+  const [previewingPersona, setPreviewingPersona] = useState<NaggyPersona | null>(null);
   const [isPreviewingChallenge, setIsPreviewingChallenge] = useState(false);
   const currentVersion = getCurrentAppVersion();
 
@@ -66,17 +67,17 @@ export default function SettingsScreen() {
     }, 3200);
   };
 
-  const handlePreviewVoice = async () => {
-    if (isSpeakingVoice) {
+  const handlePreviewPersonaVoice = async (persona: NaggyPersona) => {
+    if (previewingPersona === persona) {
       await stopAlarmSoundAndSpeech();
-      setIsSpeakingVoice(false);
+      setPreviewingPersona(null);
       return;
     }
-    setIsSpeakingVoice(true);
-    await previewVoiceNag('Review project proposal', settings.alarmVolume);
+    setPreviewingPersona(persona);
+    await previewVoiceNag('Review project proposal', settings.alarmVolume, persona);
     setTimeout(() => {
-      setIsSpeakingVoice(false);
-    }, 3500);
+      setPreviewingPersona((curr) => (curr === persona ? null : curr));
+    }, 3800);
   };
 
 
@@ -392,48 +393,149 @@ export default function SettingsScreen() {
               />
             </View>
 
-            {/* Test Voice Button */}
+            {/* Naggy Persona Presets */}
             {settings.voiceNaggingEnabled && (
               <View
                 style={[
-                  styles.settingRow,
+                  styles.settingColumn,
                   {
                     borderBottomColor: colors.borderSubtle,
                     borderBottomWidth: 1,
-                    backgroundColor: colors.surfaceSecondary,
+                    padding: 14,
                   },
                 ]}
               >
-                <View style={styles.rowLabelContainer}>
-                  <Text style={[typography.bodySmall, { color: colors.text, fontWeight: '600' }]}>
-                    Test Voice Synthesizer
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <Text style={[typography.bodyMedium, { color: colors.text, fontWeight: '700' }]}>
+                    Naggy Persona Presets
                   </Text>
-                  <Text style={[typography.micro, { color: colors.textSecondary }]}>
-                    Preview how Naggy speaks task alerts
-                  </Text>
+                  <View
+                    style={{
+                      paddingHorizontal: 8,
+                      paddingVertical: 2,
+                      borderRadius: radii.pill,
+                      backgroundColor: colors.primary + '18',
+                    }}
+                  >
+                    <Text style={[typography.micro, { color: colors.primary, fontWeight: '700' }]}>
+                      Voice & Quotes
+                    </Text>
+                  </View>
                 </View>
-                <TouchableOpacity
-                  onPress={handlePreviewVoice}
-                  activeOpacity={0.7}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: colors.primary,
-                    paddingHorizontal: 12,
-                    paddingVertical: 6,
-                    borderRadius: radii.pill,
-                    gap: 6,
-                  }}
-                >
-                  <Ionicons
-                    name={isSpeakingVoice ? 'stop' : 'volume-high'}
-                    size={14}
-                    color="#FFFFFF"
-                  />
-                  <Text style={[typography.micro, { color: '#FFFFFF', fontWeight: '700' }]}>
-                    {isSpeakingVoice ? 'Speaking...' : 'Play Sample'}
-                  </Text>
-                </TouchableOpacity>
+                <Text style={[typography.caption, { color: colors.textSecondary, marginBottom: 12 }]}>
+                  Customize Naggy&apos;s speech tone, pitch, and motivational nagging personality
+                </Text>
+
+                {AVAILABLE_PERSONAS.map((persona) => {
+                  const isSelected = (settings.naggyPersona || 'coach') === persona.id;
+                  const isPlaying = previewingPersona === persona.id;
+
+                  return (
+                    <View
+                      key={persona.id}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: 12,
+                        marginBottom: 8,
+                        borderRadius: radii.md,
+                        backgroundColor: isSelected ? colors.primary + '12' : colors.surfaceSecondary,
+                        borderWidth: 1,
+                        borderColor: isSelected ? colors.primary : colors.borderSubtle,
+                      }}
+                    >
+                      <TouchableOpacity
+                        onPress={() => updateSettings({ naggyPersona: persona.id })}
+                        style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}
+                        activeOpacity={0.7}
+                      >
+                        <View
+                          style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: radii.pill,
+                            backgroundColor: isSelected ? colors.primary : colors.surface,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 10,
+                          }}
+                        >
+                          <Ionicons
+                            name={persona.icon as any}
+                            size={20}
+                            color={isSelected ? '#FFFFFF' : colors.primary}
+                          />
+                        </View>
+                        <View style={{ flex: 1, paddingRight: 6 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <Text
+                              style={[
+                                typography.bodySmall,
+                                { color: colors.text, fontWeight: isSelected ? '800' : '600' },
+                              ]}
+                            >
+                              {persona.label}
+                            </Text>
+                            <Text
+                              style={[
+                                typography.micro,
+                                {
+                                  color: isSelected ? colors.primary : colors.textSecondary,
+                                  fontWeight: '600',
+                                },
+                              ]}
+                            >
+                              • {persona.tagline}
+                            </Text>
+                          </View>
+                          <Text
+                            style={[
+                              typography.micro,
+                              { color: colors.textSecondary, marginTop: 2 },
+                            ]}
+                          >
+                            {persona.description}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        onPress={() => handlePreviewPersonaVoice(persona.id)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        activeOpacity={0.7}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 4,
+                          paddingHorizontal: 10,
+                          paddingVertical: 6,
+                          borderRadius: radii.pill,
+                          backgroundColor: isPlaying ? colors.primary : colors.surface,
+                          borderWidth: 1,
+                          borderColor: isPlaying ? colors.primary : colors.border,
+                        }}
+                      >
+                        <Ionicons
+                          name={isPlaying ? 'stop' : 'volume-high'}
+                          size={14}
+                          color={isPlaying ? '#FFFFFF' : colors.primary}
+                        />
+                        <Text
+                          style={[
+                            typography.micro,
+                            {
+                              color: isPlaying ? '#FFFFFF' : colors.primary,
+                              fontWeight: '700',
+                            },
+                          ]}
+                        >
+                          {isPlaying ? 'Speaking...' : 'Sample'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  );
+                })}
               </View>
             )}
 

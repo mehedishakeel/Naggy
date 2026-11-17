@@ -200,6 +200,211 @@ export default function AnalyticsScreen() {
           </View>
         </View>
 
+        {/* PROCRASTINATION INDEX & ACCOUNTABILITY GRADE */}
+        <View
+          style={[
+            styles.chartCard,
+            cardStyle,
+            {
+              borderRadius: radii.xl,
+              padding: 18,
+              marginTop: 16,
+            },
+          ]}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <View>
+              <Text style={[typography.caption, { color: colors.primary, textTransform: 'uppercase', fontWeight: '800', letterSpacing: 0.6 }]}>
+                ACCOUNTABILITY SCORECARD
+              </Text>
+              <Text style={[typography.titleSmall, { color: colors.text, fontWeight: '800', marginTop: 2 }]}>
+                Procrastination Index
+              </Text>
+            </View>
+
+            {/* Nag Resistance Grade Badge */}
+            <View
+              style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 48,
+                height: 48,
+                borderRadius: radii.pill,
+                backgroundColor:
+                  metrics.nagEfficiencyGrade === 'A+' || metrics.nagEfficiencyGrade === 'A'
+                    ? colors.success + '20'
+                    : metrics.nagEfficiencyGrade === 'B'
+                    ? colors.primary + '20'
+                    : metrics.nagEfficiencyGrade === 'C'
+                    ? '#F59E0B20'
+                    : colors.urgent + '20',
+                borderWidth: 2,
+                borderColor:
+                  metrics.nagEfficiencyGrade === 'A+' || metrics.nagEfficiencyGrade === 'A'
+                    ? colors.success
+                    : metrics.nagEfficiencyGrade === 'B'
+                    ? colors.primary
+                    : metrics.nagEfficiencyGrade === 'C'
+                    ? '#F59E0B'
+                    : colors.urgent,
+              }}
+            >
+              <Text
+                style={{
+                  fontSize: 20,
+                  fontWeight: '900',
+                  color:
+                    metrics.nagEfficiencyGrade === 'A+' || metrics.nagEfficiencyGrade === 'A'
+                      ? colors.success
+                      : metrics.nagEfficiencyGrade === 'B'
+                      ? colors.primary
+                      : metrics.nagEfficiencyGrade === 'C'
+                      ? '#F59E0B'
+                      : colors.urgent,
+                }}
+              >
+                {metrics.nagEfficiencyGrade}
+              </Text>
+            </View>
+          </View>
+
+          {/* Procrastination Index Gauge Bar */}
+          <View style={{ marginVertical: 8 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={[typography.titleMedium, { color: colors.text, fontWeight: '800' }]}>
+                  {metrics.procrastinationScore}
+                </Text>
+                <Text style={[typography.caption, { color: colors.textSecondary }]}>/ 100 Delay Index</Text>
+              </View>
+              <Text
+                style={[
+                  typography.caption,
+                  {
+                    fontWeight: '700',
+                    color:
+                      metrics.procrastinationScore <= 20
+                        ? colors.success
+                        : metrics.procrastinationScore <= 45
+                        ? colors.primary
+                        : metrics.procrastinationScore <= 65
+                        ? '#F59E0B'
+                        : colors.urgent,
+                  },
+                ]}
+              >
+                {metrics.procrastinationLabel}
+              </Text>
+            </View>
+
+            {/* Gauge Track */}
+            <View
+              style={{
+                height: 10,
+                width: '100%',
+                backgroundColor: colors.surfaceSecondary,
+                borderRadius: radii.pill,
+                overflow: 'hidden',
+              }}
+            >
+              <View
+                style={{
+                  height: '100%',
+                  width: `${Math.max(4, metrics.procrastinationScore)}%`,
+                  backgroundColor:
+                    metrics.procrastinationScore <= 20
+                      ? colors.success
+                      : metrics.procrastinationScore <= 45
+                      ? colors.primary
+                      : metrics.procrastinationScore <= 65
+                      ? '#F59E0B'
+                      : colors.urgent,
+                  borderRadius: radii.pill,
+                }}
+              />
+            </View>
+          </View>
+
+          {/* First Nag Action & Snooze Breakdown */}
+          <View
+            style={{
+              marginTop: 14,
+              paddingTop: 14,
+              borderTopWidth: 1,
+              borderTopColor: colors.borderSubtle,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Text style={[typography.bodySmall, { color: colors.text, fontWeight: '700' }]}>
+                Nag Resistance & Snooze Habits
+              </Text>
+              <Text style={[typography.micro, { color: colors.primary, fontWeight: '700' }]}>
+                {metrics.firstNagCompletionRate}% 1st-Nag Action
+              </Text>
+            </View>
+
+            {/* Multi-segment breakdown bar */}
+            {(() => {
+              const totalSamples = Math.max(
+                1,
+                metrics.snoozeBreakdown.zeroSnoozes +
+                  metrics.snoozeBreakdown.oneToTwoSnoozes +
+                  metrics.snoozeBreakdown.threePlusSnoozes
+              );
+              const pZero = Math.round((metrics.snoozeBreakdown.zeroSnoozes / totalSamples) * 100);
+              const pOneTwo = Math.round((metrics.snoozeBreakdown.oneToTwoSnoozes / totalSamples) * 100);
+              const pThreePlus = Math.max(0, 100 - pZero - pOneTwo);
+
+              return (
+                <View>
+                  <View
+                    style={{
+                      height: 8,
+                      width: '100%',
+                      backgroundColor: colors.surfaceSecondary,
+                      borderRadius: radii.pill,
+                      flexDirection: 'row',
+                      overflow: 'hidden',
+                      marginVertical: 4,
+                    }}
+                  >
+                    {pZero > 0 && (
+                      <View style={{ width: `${pZero}%`, height: '100%', backgroundColor: colors.success }} />
+                    )}
+                    {pOneTwo > 0 && (
+                      <View style={{ width: `${pOneTwo}%`, height: '100%', backgroundColor: '#F59E0B' }} />
+                    )}
+                    {pThreePlus > 0 && (
+                      <View style={{ width: `${pThreePlus}%`, height: '100%', backgroundColor: colors.urgent }} />
+                    )}
+                  </View>
+
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: radii.pill, backgroundColor: colors.success }} />
+                      <Text style={[typography.micro, { color: colors.textSecondary }]}>
+                        0 Snooze ({metrics.snoozeBreakdown.zeroSnoozes})
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: radii.pill, backgroundColor: '#F59E0B' }} />
+                      <Text style={[typography.micro, { color: colors.textSecondary }]}>
+                        1-2 Snooze ({metrics.snoozeBreakdown.oneToTwoSnoozes})
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: radii.pill, backgroundColor: colors.urgent }} />
+                      <Text style={[typography.micro, { color: colors.textSecondary }]}>
+                        3+ Overdue ({metrics.snoozeBreakdown.threePlusSnoozes})
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })()}
+          </View>
+        </View>
+
         {/* 3. 7-Day Completion Velocity Chart */}
         <View
           style={[

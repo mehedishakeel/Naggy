@@ -62,6 +62,7 @@ const ALLOWED_SETTINGS_KEYS = new Set([
   'hasCompletedOnboarding',
   'nuclearModeEnabled',
   'nuclearModeType',
+  'naggyPersona',
 ]);
 
 /**

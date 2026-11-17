@@ -74,6 +74,7 @@ export const FullScreenAlarmModal: React.FC<FullScreenAlarmModalProps> = ({
           tone: currentSettings.alarmTone,
           voiceEnabled: currentSettings.voiceNaggingEnabled,
           volume: currentSettings.alarmVolume,
+          persona: currentSettings.naggyPersona,
         });
       }
     } catch {

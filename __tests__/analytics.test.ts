@@ -110,5 +110,12 @@ describe('Accountability & Nag Analytics Service', () => {
     expect(metrics.totalCompleted).toBe(1);
     expect(metrics.weeklyTrend.length).toBe(7);
     expect(metrics.briefing).toBeDefined();
+    expect(metrics.procrastinationScore).toBeGreaterThanOrEqual(0);
+    expect(metrics.procrastinationScore).toBeLessThanOrEqual(100);
+    expect(metrics.procrastinationLabel).toBeDefined();
+    expect(['A+', 'A', 'B', 'C', 'D', 'F']).toContain(metrics.nagEfficiencyGrade);
+    expect(metrics.firstNagCompletionRate).toBeGreaterThanOrEqual(0);
+    expect(metrics.snoozeBreakdown).toBeDefined();
+    expect(metrics.snoozeBreakdown.zeroSnoozes).toBeGreaterThanOrEqual(0);
   });
 });

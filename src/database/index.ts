@@ -450,6 +450,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   hasCompletedOnboarding: false,
   nuclearModeEnabled: false,
   nuclearModeType: 'math',
+  naggyPersona: 'coach',
 };
 
 export const getSettings = (): AppSettings => {
@@ -501,6 +502,7 @@ export const getSettings = (): AppSettings => {
       ? map.get('nuclear_mode_enabled') === 'true'
       : DEFAULT_SETTINGS.nuclearModeEnabled,
     nuclearModeType: (map.get('nuclear_mode_type') as any) || DEFAULT_SETTINGS.nuclearModeType,
+    naggyPersona: (map.get('naggy_persona') as any) || DEFAULT_SETTINGS.naggyPersona,
   };
 };
 
@@ -525,6 +527,7 @@ const VALID_SETTINGS_KEYS = new Set([
   'hasCompletedOnboarding',
   'nuclearModeEnabled',
   'nuclearModeType',
+  'naggyPersona',
 ]);
 
 export const saveSettings = (settings: Partial<AppSettings>): void => {

@@ -15,6 +15,14 @@ export interface SnoozedTaskStat {
   dueDate: string | null;
 }
 
+export type NagResistanceGrade = 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
+
+export interface SnoozeDistribution {
+  zeroSnoozes: number;
+  oneToTwoSnoozes: number;
+  threePlusSnoozes: number;
+}
+
 export interface AccountabilityMetrics {
   currentStreak: number;
   bestStreak: number;
@@ -29,6 +37,11 @@ export interface AccountabilityMetrics {
     summary: string;
     actionAdvice: string;
   };
+  procrastinationScore: number; // 0 - 100
+  procrastinationLabel: string;
+  nagEfficiencyGrade: NagResistanceGrade;
+  firstNagCompletionRate: number; // 0 - 100
+  snoozeBreakdown: SnoozeDistribution;
 }
 
 /**
@@ -271,6 +284,79 @@ export const computeAccountabilityMetrics = (allTasks: Task[]): AccountabilityMe
     currentStreak,
   });
 
+  // 7. Procrastination Score, Nag Efficiency Grade, and Snooze Breakdown
+  let zeroSnoozes = 0;
+  let oneToTwoSnoozes = 0;
+  let threePlusSnoozes = 0;
+
+  for (const t of allTasks.filter((task) => !task.isArchived)) {
+    if (t.isCompleted) {
+      if (t.dueDate && t.dueTime && t.completedAt) {
+        try {
+          const scheduled = new Date(`${t.dueDate}T${t.dueTime}:00`);
+          const completed = new Date(t.completedAt);
+          const diffMin = (completed.getTime() - scheduled.getTime()) / (1000 * 60);
+          if (diffMin <= 10) {
+            zeroSnoozes++;
+          } else if (diffMin <= 45) {
+            oneToTwoSnoozes++;
+          } else {
+            threePlusSnoozes++;
+          }
+        } catch {
+          zeroSnoozes++;
+        }
+      } else {
+        zeroSnoozes++;
+      }
+    } else {
+      if (t.snoozeUntil) {
+        oneToTwoSnoozes++;
+      } else if (t.dueDate && t.dueDate < todayStr) {
+        threePlusSnoozes++;
+      }
+    }
+  }
+
+  const sampleSize = zeroSnoozes + oneToTwoSnoozes + threePlusSnoozes;
+  const firstNagCompletionRate = sampleSize > 0 ? Math.round((zeroSnoozes / sampleSize) * 100) : 100;
+
+  // Procrastination Index: 0 (Disciplined) to 100 (Severe Procrastination)
+  let procrastinationScore = 0;
+  if (sampleSize > 0) {
+    const delayPoints = oneToTwoSnoozes * 1.5 + threePlusSnoozes * 3.5;
+    const maxPoints = sampleSize * 3.5;
+    const delayRatio = delayPoints / maxPoints;
+    const overduePenalty = (overdueCount / Math.max(1, totalTasks)) * 30;
+    procrastinationScore = Math.min(100, Math.max(0, Math.round(delayRatio * 70 + overduePenalty)));
+  }
+
+  let procrastinationLabel = 'Discipline Master';
+  if (procrastinationScore > 80) {
+    procrastinationLabel = 'Chronic Procrastinator';
+  } else if (procrastinationScore > 60) {
+    procrastinationLabel = 'Frequent Delayer';
+  } else if (procrastinationScore > 35) {
+    procrastinationLabel = 'Moderate Delay';
+  } else if (procrastinationScore > 15) {
+    procrastinationLabel = 'Action Oriented';
+  }
+
+  let nagEfficiencyGrade: NagResistanceGrade = 'A+';
+  if (procrastinationScore <= 10 && overdueCount === 0) {
+    nagEfficiencyGrade = 'A+';
+  } else if (procrastinationScore <= 25) {
+    nagEfficiencyGrade = 'A';
+  } else if (procrastinationScore <= 45) {
+    nagEfficiencyGrade = 'B';
+  } else if (procrastinationScore <= 65) {
+    nagEfficiencyGrade = 'C';
+  } else if (procrastinationScore <= 85) {
+    nagEfficiencyGrade = 'D';
+  } else {
+    nagEfficiencyGrade = 'F';
+  }
+
   return {
     currentStreak,
     bestStreak,
@@ -280,5 +366,14 @@ export const computeAccountabilityMetrics = (allTasks: Task[]): AccountabilityMe
     weeklyTrend,
     mostPostponedTasks: postponedList,
     briefing,
+    procrastinationScore,
+    procrastinationLabel,
+    nagEfficiencyGrade,
+    firstNagCompletionRate,
+    snoozeBreakdown: {
+      zeroSnoozes,
+      oneToTwoSnoozes,
+      threePlusSnoozes,
+    },
   };
 };

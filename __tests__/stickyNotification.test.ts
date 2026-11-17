@@ -29,6 +29,7 @@ describe('Sticky Lock Screen & Widget Sync Service', () => {
     hasCompletedOnboarding: true,
     nuclearModeEnabled: false,
     nuclearModeType: 'math',
+    naggyPersona: 'coach',
   };
 
   const sampleOverdueTask: Task = {

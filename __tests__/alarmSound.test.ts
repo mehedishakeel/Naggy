@@ -2,6 +2,7 @@ import * as Speech from 'expo-speech';
 import { createAudioPlayer } from 'expo-audio';
 import {
   AVAILABLE_TONES,
+  AVAILABLE_PERSONAS,
   startAlarmSoundAndSpeech,
   stopAlarmSoundAndSpeech,
   previewAlarmTone,
@@ -26,6 +27,24 @@ describe('Alarm Sound & Voice Nagging Service', () => {
     expect(ids).toContain('chime');
     expect(ids).toContain('bell');
     expect(ids).toContain('none');
+  });
+
+  test('AVAILABLE_PERSONAS provides coach, mom, and sergeant personalities', () => {
+    const personaIds = AVAILABLE_PERSONAS.map((p) => p.id);
+    expect(personaIds).toContain('coach');
+    expect(personaIds).toContain('mom');
+    expect(personaIds).toContain('sergeant');
+  });
+
+  test('previewVoiceNag supports custom persona voice pitches and phrases', async () => {
+    await previewVoiceNag('Submit tax returns', 0.8, 'mom');
+    expect(Speech.speak).toHaveBeenCalledWith(
+      expect.stringContaining('Submit tax returns'),
+      expect.objectContaining({
+        pitch: 1.15,
+        rate: 0.92,
+      })
+    );
   });
 
   test('startAlarmSoundAndSpeech starts tone audio player and speaks task title', async () => {

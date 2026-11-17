@@ -5,6 +5,7 @@ import { useTheme } from '../context/ThemeContext';
 import { parseNaturalLanguageTask, ParsedTaskInput } from '../utils/nlp';
 import { formatDisplayDate, formatDisplayTime } from '../utils/date';
 import { formatRecurrenceRule } from '../utils/recurrence';
+import { VoiceDictationModal } from './VoiceDictationModal';
 
 interface QuickAddBarProps {
   onAddTask: (parsed: ParsedTaskInput) => void;
@@ -14,6 +15,7 @@ interface QuickAddBarProps {
 export const QuickAddBar: React.FC<QuickAddBarProps> = ({ onAddTask, onOpenFullModal }) => {
   const { colors, typography, radii, spacing, cardStyle, isDark } = useTheme();
   const [text, setText] = useState('');
+  const [isVoiceModalOpen, setIsVoiceModalOpen] = useState(false);
 
   const parsed = parseNaturalLanguageTask(text);
 
@@ -21,6 +23,10 @@ export const QuickAddBar: React.FC<QuickAddBarProps> = ({ onAddTask, onOpenFullM
     if (!text.trim()) return;
     onAddTask(parsed);
     setText('');
+  };
+
+  const handleVoiceTaskParsed = (voiceParsed: ParsedTaskInput) => {
+    onAddTask(voiceParsed);
   };
 
   return (
@@ -71,21 +77,38 @@ export const QuickAddBar: React.FC<QuickAddBarProps> = ({ onAddTask, onOpenFullM
             <Ionicons name="arrow-up" size={18} color="#FFFFFF" />
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity
-            onPress={onOpenFullModal}
-            activeOpacity={0.7}
-            style={[
-              styles.iconBtn,
-              {
-                backgroundColor: colors.surfaceSecondary,
-                borderRadius: radii.pill,
-                borderWidth: 1,
-                borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(148,163,184,0.2)',
-              },
-            ]}
-          >
-            <Ionicons name="options-outline" size={18} color={colors.textSecondary} />
-          </TouchableOpacity>
+          <View style={styles.rightIconsGroup}>
+            <TouchableOpacity
+              onPress={() => setIsVoiceModalOpen(true)}
+              activeOpacity={0.7}
+              style={[
+                styles.iconBtn,
+                {
+                  backgroundColor: colors.primaryLight,
+                  borderRadius: radii.pill,
+                  marginRight: 6,
+                },
+              ]}
+            >
+              <Ionicons name="mic" size={18} color={colors.primary} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={onOpenFullModal}
+              activeOpacity={0.7}
+              style={[
+                styles.iconBtn,
+                {
+                  backgroundColor: colors.surfaceSecondary,
+                  borderRadius: radii.pill,
+                  borderWidth: 1,
+                  borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(148,163,184,0.2)',
+                },
+              ]}
+            >
+              <Ionicons name="options-outline" size={18} color={colors.textSecondary} />
+            </TouchableOpacity>
+          </View>
         )}
       </View>
 
@@ -128,6 +151,13 @@ export const QuickAddBar: React.FC<QuickAddBarProps> = ({ onAddTask, onOpenFullM
           )}
         </View>
       )}
+
+      {/* Voice Dictation Modal */}
+      <VoiceDictationModal
+        visible={isVoiceModalOpen}
+        onClose={() => setIsVoiceModalOpen(false)}
+        onTaskParsed={handleVoiceTaskParsed}
+      />
     </View>
   );
 };
@@ -135,6 +165,10 @@ export const QuickAddBar: React.FC<QuickAddBarProps> = ({ onAddTask, onOpenFullM
 const styles = StyleSheet.create({
   wrapper: {},
   inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  rightIconsGroup: {
     flexDirection: 'row',
     alignItems: 'center',
   },
